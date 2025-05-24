@@ -254,11 +254,11 @@ SCAN_ANGLE_CENTER = 90
 
 
 def startup():
-    display.show(Image('00000:'
-                  '00000:'
-                  '00000:'
-                  '00000:'
-                  '00000'))
+    display.show(Image('00990:'
+                  '09090:'
+                  '90090:'
+                  '00090:'
+                  '09999'))
     headlights(BOTH, ON)
     set_servo_angle(SERVO_1, SCAN_ANGLE_CENTER)
     sleep_ms(300)

@@ -2,7 +2,8 @@ from microbit import *
 import maqueen  # Replace this with your robot library
 import music
 
-robot = maqueen.MaqueenPlus()
+#robot = maqueen.MaqueenPlus()
+robot = maqueenPlusV2
 path_memory = []  # To store turns
 
 # Constants

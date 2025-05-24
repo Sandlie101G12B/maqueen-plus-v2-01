@@ -88,14 +88,11 @@ WHITE = const(0xFF9070)
 # General purpose functions
 def init_maqueen():
     global sensor_index
-    display.show(Image("90009:" "09090:" "00900:" "09090:" "90009"))
     version = maqueen_version()
-    display.scroll(version[-3:])
     if version[-3:] == "2.0":
         sensor_index = [0, 1, 2, 3, 4]
     elif version[-3:] == "2.1":
         sensor_index = [4, 3, 2, 1, 0]
-    display.show(Image("00009:" "00090:" "90900:" "09000:" "00000"))
     sleep_s(1)
     display.clear()
 
@@ -241,6 +238,9 @@ def set_underglow_light(light, color):
     neo_pixel.show()
 
 #---------------------------------------------------------------------------------------
+
+
+
 # Initialize
 init_maqueen()
 
@@ -254,11 +254,7 @@ SCAN_ANGLE_CENTER = 90
 
 
 def startup():
-    display.show(Image('00000:'
-                  '00000:'
-                  '00000:'
-                  '00000:'
-                  '00000'))
+    display.scroll("Group 38")
     headlights(BOTH, ON)
     set_servo_angle(SERVO_1, SCAN_ANGLE_CENTER)
     sleep_ms(300)
@@ -267,6 +263,7 @@ def startup():
     sleep_ms(500)
     set_servo_angle(SERVO_2, 90)  # Close
     # Optionally play a sound here
+    display.clear()
 
 
 def follow_line_until_node():
@@ -304,8 +301,8 @@ def scan_for_obstacles():
 
 
 def turn_and_log(direction, move_time):
-    timestamp = running_time()
-    path_memory.append((timestamp, direction, move_time))
+    # timestamp = running_time()
+    path_memory.append((direction, move_time))
     if direction == 'L':
         spin_left(50)
         sleep_ms(600)

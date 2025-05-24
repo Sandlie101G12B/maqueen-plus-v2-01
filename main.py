@@ -1,12 +1,12 @@
 try:
     from micropython import const
-except ImportError:
+except:
     def const(x): return x
 
 from microbit import *
 try:
     from machine import time_pulse_us
-except ImportError:
+except:
     time_pulse_us = None
 
 from time import sleep_us, sleep_ms, sleep

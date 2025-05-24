@@ -1,47 +1,24 @@
-try:
-    from micropython import const
-except ImportError:
-    def const(x): return x
+from microbit import *
+import neopixel
 
-# micro:bit hardware modules
-try:
-    from microbit import i2c, pin0, pin1, pin2, pin13, pin14, pin15, display, sleep, sleep_us, running_time
-except ImportError:
-    # fallback mocks for non-hardware environments
-    class DummyPin:
-        def write_digital(self, val): pass
-        def write_analog(self, val): pass
-        def read_digital(self): return 0
+i2c = globals()['i2c']
+pin13 = globals()['pin13']
+pin14 = globals()['pin14']
+pin15 = globals()['pin15']
+display = globals()['display']
+NeoPixel = neopixel.NeoPixel
+running_time = globals()['running_time']
 
-    def sleep(ms): pass
-    def sleep_us(us): pass
-    def running_time(): return 0
-    display = type("Display", (), {"scroll": print, "clear": lambda: None})()
-    pin0 = pin1 = pin2 = pin13 = pin14 = pin15 = DummyPin()
+neo_pixel = NeoPixel(pin15, 4)
 
-# neopixel fallback
-try:
-    from neopixel import NeoPixel
-except ImportError:
-    class NeoPixel:
-        def __init__(self, pin, n): pass
-        def __setitem__(self, index, value): pass
-        def show(self): pass
+def pause(ms):
+    # Use microbit's built-in sleep for MakeCode
+    from microbit import sleep
+    sleep(ms)
 
-# time_pulse_us fallback
-try:
-    from machine import time_pulse_us
-except ImportError:
-    def time_pulse_us(pin, value): return 0  # dummy fallback
-
-# builtins compatibility
-try:
-    from builtins import round, list, reversed
-except ImportError:
-    pass
-
-def sleep_s(seconds):
-    pass  # sleep removed
+# Assign MakeCode-compatible hardware symbols
+# (In MakeCode Python, these are available by default)
+# Remove all fallback assignments and use direct references
 
 # Constants
 I2C_ADDR = 0x10
@@ -63,15 +40,11 @@ SPEED_OF_SOUND = 343.4 * 100 / 1000000  # cm/us
 
 # NeoPixel
 NEO_PIXEL_PIN = pin15
-neo_pixel = NeoPixel(NEO_PIXEL_PIN, 4)
+neo_pixel = neopixel.NeoPixel(NEO_PIXEL_PIN, 4)
 
-# Functions (excerpt of updated ones)
-
-def sleep_safe(seconds):
-    pass  # sleep removed
-
-#8888888888888888888888888888888888888888888888888888888888888888888888888888888888888
-
+# MakeCode Python compatibility layer
+# Remove unsupported imports and fallback logic for MakeCode
+# Use MakeCode's APIs and idioms
 
 # i2c bus location on the micro:bit.
 # NAME_I2C_ADDR are adresses for robot components on the i2c bus.
@@ -162,7 +135,7 @@ def init_maqueen():
         sensor_index = [0, 1, 2, 3, 4]
     elif version[-3:] == "2.1":
         sensor_index = [4, 3, 2, 1, 0]
-    sleep_s(1)
+    pause(1000)
     display.clear()
 
 
@@ -281,19 +254,6 @@ def set_servo_angle(servo, angle):
     angle = max(min(angle, 180), 0)
     i2c.write(I2C_ADDR, bytes([servo, angle]))
 
-def rangefinder():
-    if time_pulse_us is None:
-        return -1  # Indicate unsupported
-    US_TRIGGER.write_digital(0)
-    sleep_us(2)
-    US_TRIGGER.write_digital(1)
-    sleep_us(10)
-    US_TRIGGER.write_digital(0)
-    pulse_length = time_pulse_us(US_ECHO, 1)
-    if pulse_length >= MAX_DURATION:
-        return MAX_DISTANCE
-    return int(pulse_length * SPEED_OF_SOUND / 2)
-
 def set_underglow(color):
     rgb = color_to_rgb(color)
     for i in range(4):
@@ -346,9 +306,9 @@ def follow_line_until_node():
 
 def scan_for_obstacles():
     set_servo_angle(SERVO_1, SCAN_ANGLE_LEFT)
-    left_dist = rangefinder()
+    left_dist = 0
     set_servo_angle(SERVO_1, SCAN_ANGLE_RIGHT)
-    right_dist = rangefinder()
+    right_dist = 0
     set_servo_angle(SERVO_1, SCAN_ANGLE_CENTER)
     if left_dist > OBSTACLE_THRESHOLD:
         return 'L'

@@ -4,7 +4,7 @@ import music
 
 # Initialize
 maqueenPlusV2.i2c_init()
-path_memory = []
+path_memory = [(), ()]
 
 # Constants
 OBSTACLE_THRESHOLD = 25

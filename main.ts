@@ -1,7 +1,7 @@
 let direction: string;
 //  Initialize
 maqueenPlusV2.I2CInit()
-let path_memory = []
+let path_memory = [[], []]
 //  Constants
 let OBSTACLE_THRESHOLD = 25
 let SCAN_ANGLE_LEFT = 45

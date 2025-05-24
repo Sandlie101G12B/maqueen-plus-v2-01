@@ -2,18 +2,16 @@ from microbit import *
 import maqueenPlusV2
 import music
 
-# === Init robot shortcut ===
 robot = maqueenPlusV2
 robot.i2c_init()
 path_memory = []
 
-# === Constants ===
-OBSTACLE_THRESHOLD = 25  # cm
+# Constants
+OBSTACLE_THRESHOLD = 25
 SCAN_ANGLE_LEFT = 45
 SCAN_ANGLE_RIGHT = 135
 SCAN_ANGLE_CENTER = 90
 
-# === Enums ===
 S1 = robot.MyEnumServo.S1
 GRIPPER = robot.MyEnumServo.GRIPPER
 
@@ -26,8 +24,6 @@ CLOSE = robot.MyEnumOpenClose.CLOSE
 LEFT_SENSOR = robot.MyEnumLineSensor.LEFT_SENSOR
 RIGHT_SENSOR = robot.MyEnumLineSensor.RIGHT_SENSOR
 
-# === Functions ===
-
 def startup():
     display.scroll("G3")
     robot.led_all_on()
@@ -39,6 +35,7 @@ def startup():
     music.play(music.BA_DING)
 
 def follow_line_until_node():
+    start_time = running_time()
     while True:
         left = robot.read_line_sensor(LEFT_SENSOR)
         right = robot.read_line_sensor(RIGHT_SENSOR)
@@ -56,6 +53,8 @@ def follow_line_until_node():
             robot.control_motor(LEFT_MOTOR, 0)
             robot.control_motor(RIGHT_MOTOR, 0)
             break
+    end_time = running_time()
+    return end_time - start_time
 
 def scan_for_obstacles():
     robot.control_servo(S1, SCAN_ANGLE_LEFT)
@@ -75,9 +74,9 @@ def scan_for_obstacles():
     else:
         return 'NONE'
 
-def turn_and_log(direction):
+def turn_and_log(direction, move_time):
     timestamp = running_time()
-    path_memory.append((timestamp, direction))
+    path_memory.append((timestamp, direction, move_time))
 
     if direction == 'L':
         robot.control_motor(LEFT_MOTOR, -30)
@@ -85,7 +84,7 @@ def turn_and_log(direction):
     elif direction == 'R':
         robot.control_motor(LEFT_MOTOR, 30)
         robot.control_motor(RIGHT_MOTOR, -30)
-    
+
     sleep(600)
     robot.control_motor(LEFT_MOTOR, 0)
     robot.control_motor(RIGHT_MOTOR, 0)
@@ -97,16 +96,31 @@ def deliver_package():
     robot.control_gripper(GRIPPER, OPEN)
     music.play(music.JUMP_UP)
 
-def reverse_path():
-    for _, dir in reversed(path_memory):
-        if dir == 'L':
-            robot.control_motor(LEFT_MOTOR, 30)
-            robot.control_motor(RIGHT_MOTOR, -30)
-        elif dir == 'R':
+def replay_path(reverse=True):
+    sequence = list(reversed(path_memory)) if reverse else path_memory
+
+    for i in range(len(sequence)):
+        _, direction, move_time = sequence[i]
+
+        # Flip direction if going in reverse
+        if reverse:
+            direction = 'L' if direction == 'R' else 'R'
+
+        if direction == 'L':
             robot.control_motor(LEFT_MOTOR, -30)
             robot.control_motor(RIGHT_MOTOR, 30)
+        elif direction == 'R':
+            robot.control_motor(LEFT_MOTOR, 30)
+            robot.control_motor(RIGHT_MOTOR, -30)
+
         sleep(600)
-        follow_line_until_node()
+
+        # Move forward blindly based on logged time
+        robot.control_motor(LEFT_MOTOR, 50)
+        robot.control_motor(RIGHT_MOTOR, 50)
+        sleep(move_time)
+        robot.control_motor(LEFT_MOTOR, 0)
+        robot.control_motor(RIGHT_MOTOR, 0)
 
 def pickup_package2():
     robot.control_motor(LEFT_MOTOR, 50)
@@ -118,25 +132,27 @@ def pickup_package2():
     music.play(music.BA_DING)
 
 def shutdown():
-    follow_line_until_node()
     deliver_package()
     robot.led_all_off()
     robot.control_motor(LEFT_MOTOR, 0)
     robot.control_motor(RIGHT_MOTOR, 0)
 
-# === Main Mission ===
+# === MAIN MISSION ===
+
 startup()
-follow_line_until_node()
+move_time = follow_line_until_node()
 
 for _ in range(3):
     direction = scan_for_obstacles()
     if direction == 'NONE':
         break
-    turn_and_log(direction)
-    follow_line_until_node()
+    turn_and_log(direction, move_time)
+    move_time = follow_line_until_node()
 
 deliver_package()
-reverse_path()
+replay_path(reverse=True)  # Return using memory only
+
 pickup_package2()
-reverse_path()
+replay_path(reverse=False)  # Replay exact trip to exit
+
 shutdown()

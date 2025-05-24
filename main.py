@@ -4,13 +4,15 @@ except:
     def const(x): return x
 
 from microbit import *
+from microbit import i2c, pin13, pin14, pin15, display
+from time import sleep as sleep_s, sleep_ms, sleep_us, sleep
+from microbit import running_time
 try:
     from machine import time_pulse_us
 except:
     time_pulse_us = None
-
-from time import sleep_us, sleep_ms, sleep
 from neopixel import NeoPixel
+from builtins import round
 
 # Constants
 I2C_ADDR = 0x10

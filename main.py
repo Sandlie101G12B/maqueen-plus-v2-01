@@ -1,10 +1,258 @@
 from microbit import *
-import maqueenPlusV2
-import music
+from time import sleep_ms
+
+# Import missing symbols from m.py if not already in global namespace
+#--------------------------------------------------------------------------------------
+from microbit import *
+from micropython import const
+from machine import time_pulse_us
+from time import sleep_us, sleep_ms, sleep as sleep_s
+from neopixel import NeoPixel
+
+# i2c bus location on the micro:bit.
+# NAME_I2C_ADDR are adresses for robot components on the i2c bus.
+I2C_ADDR = const(0x10)
+
+# robot version length and location
+VERSION_COUNT_I2C_ADDR = const(0x32)
+VERSION_DATA_I2C_ADDR = const(0x33)
+
+# Motor constants
+LEFT_MOTOR_I2C_ADDR = const(0x00)
+# RIGHT_MOTOR_I2C_ADDR = 0x02 not used. I always set both.
+
+AXLE_WIDTH = 0.095
+
+FORWARD = const(0)
+BACKWARD = const(1)
+
+# IR sensor constants for version 2.1
+LINE_SENSOR_I2C_ADDR = const(0x1D)
+ANALOG_L2_I2C_ADDR = const(0x26)
+ANALOG_L1_I2C_ADDR = const(0x24)
+ANALOG_M_I2C_ADDR = const(0x22)
+ANALOG_R1_I2C_ADDR = const(0x20)
+ANALOG_R2_I2C_ADDR = const(0x1E)
+
+ALL_ANALOG_SENSOR_I2C_ADDRS = [
+    ANALOG_L2_I2C_ADDR,
+    ANALOG_L1_I2C_ADDR,
+    ANALOG_M_I2C_ADDR,
+    ANALOG_R1_I2C_ADDR,
+    ANALOG_R2_I2C_ADDR,
+]
+
+sensor_index = [4, 3, 2, 1, 0]
+
+L2 = const(0)
+L1 = const(1)
+M = const(2)
+R1 = const(3)
+R2 = const(4)
+
+DIGITAL_SENSOR_STATUS_I2C_ADDR = const(0x1D)
+DIGITAL_SENSOR_MASK = [16, 8, 4, 2, 1]
+DIGITAL_SENSOR_SHIFT = [4, 3, 2, 1, 0]
+
+# Ultrasonic Rangefinder constants
+US_TRIGGER = pin13
+US_ECHO = pin14
+MIN_DISTANCE = const(2)  # centimeters
+MAX_DISTANCE = const(450)  # centimeters
+MAX_DURATION = const(38000)  # microseconds
+SPEED_OF_SOUND = 343.4 * 100 / 1000000  # centemeters/microsecond
+
+# LED constants
+LEFT_LED_I2C_ADDR = const(0x0B)
+RIGHT_LED_I2C_ADDR = const(0x0C)
+LEFT = const(0)
+RIGHT = const(1)
+BOTH = const(2)
+ON = const(1)
+OFF = const(0)
+
+# Servos
+SERVO_1 = const(0x14)
+SERVO_2 = const(0x15)
+SERVO_3 = const(0x16)
+
+# NeoPixel constatnts
+NEO_PIXEL_PIN = pin15
+RED = const(0xFF0000)
+ORANGE = const(0xFFA500)
+YELLOW = const(0xFFFF00)
+GREEN = const(0x00FF00)
+BLUE = const(0x0000FF)
+INDIGO = const(0x4B0082)
+VIOLET = const(0x8A2BE2)
+PURPLE = const(0xFF00FF)
+WHITE = const(0xFF9070)
+# OFF = const(0x000000) use the other OFF zero is zero
+
+
+# General purpose functions
+def init_maqueen():
+    global sensor_index
+    display.show(Image("90009:" "09090:" "00900:" "09090:" "90009"))
+    version = maqueen_version()
+    display.scroll(version[-3:])
+    if version[-3:] == "2.0":
+        sensor_index = [0, 1, 2, 3, 4]
+    elif version[-3:] == "2.1":
+        sensor_index = [4, 3, 2, 1, 0]
+    display.show(Image("00009:" "00090:" "90900:" "09000:" "00000"))
+    sleep_s(1)
+    display.clear()
+
+
+def eight_bits(n):
+    return max(min(n, 255), 0)
+
+
+def one_bit(n):
+    return max(min(n, 1), 0)
+
+
+def maqueen_version():
+    "Return the Maqueen board version as a string. The last 3 characters are the version."
+    i2c.write(I2C_ADDR, bytes([VERSION_COUNT_I2C_ADDR]))
+    count = int.from_bytes(i2c.read(I2C_ADDR, 1), "big")
+    i2c.write(I2C_ADDR, bytes([VERSION_DATA_I2C_ADDR]))
+    version = i2c.read(I2C_ADDR, count).decode("ascii")
+    return version
+
+
+def color_to_rgb(color):
+    r = color >> 16
+    g = color >> 8 & 0xFF
+    b = color & 0xFF
+    return r, g, b
+
+
+# Motor functions
+def stop():
+    "Stop the robot's motors"
+    drive(0)
+
+
+def drive(speed_left, speed_right=None):
+    "Drive forward at speed 0-255"
+    if speed_right == None: speed_right = speed_left
+    motors(speed_left, FORWARD, speed_right, FORWARD)
+
+
+def backup(speed_left, speed_right=None):
+    "Drive backwards at speed 0-255"
+    if speed_right == None: speed_right = speed_left
+    motors(speed_left, BACKWARD, speed_right, BACKWARD)
+
+
+def spin_left(speed):
+    "Spin the robot left at speed 0-255"
+    motors(speed, BACKWARD, speed, FORWARD)
+
+
+def spin_right(speed):
+    "Spin the robot right at speed 0-255"
+    motors(speed, FORWARD, speed, BACKWARD)
+
+
+def motors(l_speed, l_direction, r_speed, r_direction):
+    "Set both motor speeds 0-255 and directions (FORWARD, BACKWARD) left then right."
+    buf = bytearray(5)
+    buf[0] = LEFT_MOTOR_I2C_ADDR
+    buf[1] = one_bit(l_direction)
+    buf[2] = eight_bits(round(l_speed))
+    buf[3] = one_bit(r_direction)
+    buf[4] = eight_bits(round(r_speed))
+    i2c.write(I2C_ADDR, buf)
+
+
+# IR line sensor functions
+def read_all_line_sensors():
+    "Return an array of line sensor readings. Left to right."
+    values = []
+    for index in sensor_index:
+        i2c.write(I2C_ADDR, bytes([ALL_ANALOG_SENSOR_I2C_ADDRS[index]]))
+        buffer = i2c.read(I2C_ADDR, 2)
+        values.append(buffer[1] << 8 | buffer[0])
+    return values
+
+
+def read_line_sensor(sensor):
+    "Return a line sensor reading. On a line is about 240. Off line is about 70."
+    i2c.write(I2C_ADDR, bytes([ALL_ANALOG_SENSOR_I2C_ADDRS[sensor_index[sensor]]]))
+    buffer = i2c.read(I2C_ADDR, 2)
+    return buffer[1] << 8 | buffer[0]
+
+
+def sensor_on_line(sensor):
+    "Return True if the line sensor sees a line."
+    i2c.write(I2C_ADDR, bytes([DIGITAL_SENSOR_STATUS_I2C_ADDR]))
+    sensor_state = int.from_bytes(i2c.read(I2C_ADDR, 1), "big")
+    return (sensor_state & DIGITAL_SENSOR_MASK[sensor]) >> DIGITAL_SENSOR_SHIFT[
+        sensor
+    ] == 1
+
+
+# Ultrasonic Rangefinder function
+def rangefinder():
+    "Return a range in centimeters from 2 to 450."
+    US_TRIGGER.write_digital(0) # reset the trigger pin
+    sleep_us(2)
+    US_TRIGGER.write_digital(1)
+    sleep_us(10)  # we need trigger pin high for at least 10 microseconds
+    US_TRIGGER.write_digital(0)
+    pulse_length = time_pulse_us(US_ECHO, 1)
+    if pulse_length >= MAX_DURATION:
+        return MAX_DISTANCE  # out of range
+    return int(pulse_length * SPEED_OF_SOUND / 2)  # round trip distance so divide by 2
+
+
+# Servo functions
+def set_servo_angle(servo, angle):
+    "Set a servo to a specific angle. Usually 0 to 180."
+    i2c.write(I2C_ADDR, bytes([servo, angle]))
+
+
+# LED head light functions
+def headlights(select, state):
+    "Turn LEFT, RIGHT, or BOTH headlights to ON or OFF."
+    if select == LEFT:
+        i2c.write(I2C_ADDR, bytearray([LEFT_LED_I2C_ADDR, state]))
+    elif select == RIGHT:
+        i2c.write(I2C_ADDR, bytearray([RIGHT_LED_I2C_ADDR, state]))
+    else:
+        i2c.write(I2C_ADDR, bytearray([LEFT_LED_I2C_ADDR, state, state]))
+
+
+# Underglow lighting functions
+neo_pixel = NeoPixel(pin15, 4)
+
+
+def set_underglow(color):
+    rgb = color_to_rgb(color)
+    for i in range(4):
+        neo_pixel[i] = rgb
+    neo_pixel.show()
+
+
+def underglow_off():
+    set_underglow(OFF)
+
+
+def set_underglow_light(light, color):
+    neo_pixel[light] = color_to_rgb(color)
+    neo_pixel.show()
+
+#---------------------------------------------------------------------------------------
+
+from microbit import display, Image, running_time
 
 # Initialize
-maqueenPlusV2.i2c_init()
-path_memory = [(), ()]
+init_maqueen()
+
+path_memory = []
 
 # Constants
 OBSTACLE_THRESHOLD = 25
@@ -12,50 +260,49 @@ SCAN_ANGLE_LEFT = 45
 SCAN_ANGLE_RIGHT = 135
 SCAN_ANGLE_CENTER = 90
 
+
 def startup():
-    startup = true
-    #display.scroll("G3")
-    #maqueenPlusV2.led_all_on()
-    #maqueenPlusV2.control_servo(maqueenPlusV2.MyEnumServo.S1, SCAN_ANGLE_CENTER)
-    #sleep(300)
-    #maqueenPlusV2.control_gripper(maqueenPlusV2.MyEnumServo.GRIPPER, maqueenPlusV2.MyEnumOpenClose.OPEN)
-    #sleep(500)
-    #maqueenPlusV2.control_gripper(maqueenPlusV2.MyEnumServo.GRIPPER, maqueenPlusV2.MyEnumOpenClose.CLOSE)
-    #music.play(music.BA_DING)
+    display.show(Image('00000:'
+                  '00000:'
+                  '00000:'
+                  '00000:'
+                  '00000'))
+    headlights(BOTH, ON)
+    set_servo_angle(SERVO_1, SCAN_ANGLE_CENTER)
+    sleep_ms(300)
+    # Simulate gripper open/close with servo if needed
+    set_servo_angle(SERVO_2, 0)  # Open
+    sleep_ms(500)
+    set_servo_angle(SERVO_2, 90)  # Close
+    # Optionally play a sound here
+
 
 def follow_line_until_node():
-    #start_time = running_time()
-    #while True:
-        #left = maqueenPlusV2.read_line_sensor(maqueenPlusV2.MyEnumLineSensor.LEFT_SENSOR)
-        #right = maqueenPlusV2.read_line_sensor(maqueenPlusV2.MyEnumLineSensor.RIGHT_SENSOR)
+    start_time = running_time()
+    while True:
+        left = read_line_sensor(L1)
+        right = read_line_sensor(R1)
+        if left > 150 and right > 150:
+            drive(50, 50)
+        elif left > 150:
+            drive(20, 50)
+        elif right > 150:
+            drive(50, 20)
+        else:
+            stop()
+            break
+    end_time = running_time()
+    return end_time - start_time
 
-        #if left and right:
-            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 50)
-            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 50)
-        #elif left:
-            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 20)
-            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 50)
-        #elif right:
-            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 50)
-            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 20)
-        #else:
-            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
-            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
-            #break
-    #end_time = running_time()
-    return #end_time - start_time
 
 def scan_for_obstacles():
-    #maqueenPlusV2.control_servo(maqueenPlusV2.MyEnumServo.S1, SCAN_ANGLE_LEFT)
-    #sleep(300)
-    left_dist = maqueenPlusV2.read_ultrasonic(DigitalPin.P13, DigitalPin.P14)
-
-    #maqueenPlusV2.control_servo(maqueenPlusV2.MyEnumServo.S1, SCAN_ANGLE_RIGHT)
-    #sleep(300)
-    right_dist = maqueenPlusV2.read_ultrasonic(DigitalPin.P13, DigitalPin.P14)
-
-    #maqueenPlusV2.control_servo(maqueenPlusV2.MyEnumServo.S1, SCAN_ANGLE_CENTER)
-
+    set_servo_angle(SERVO_1, SCAN_ANGLE_LEFT)
+    sleep_ms(300)
+    left_dist = rangefinder()
+    set_servo_angle(SERVO_1, SCAN_ANGLE_RIGHT)
+    sleep_ms(300)
+    right_dist = rangefinder()
+    set_servo_angle(SERVO_1, SCAN_ANGLE_CENTER)
     if left_dist > OBSTACLE_THRESHOLD:
         return 'L'
     elif right_dist > OBSTACLE_THRESHOLD:
@@ -63,74 +310,57 @@ def scan_for_obstacles():
     else:
         return 'NONE'
 
+
 def turn_and_log(direction, move_time):
-    #timestamp = running_time()
-    timestamp = 5
+    timestamp = running_time()
     path_memory.append((timestamp, direction, move_time))
-
     if direction == 'L':
-        return 
-        #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, -30)
-        #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 30)
+        spin_left(50)
+        sleep_ms(600)
+        stop()
     elif direction == 'R':
-        return 
-        #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 30)
-        #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, -30)
+        spin_right(50)
+        sleep_ms(600)
+        stop()
+    # Optionally play a sound here
 
-    #sleep(600)
-    #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
-    #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
-    #music.play(music.POWER_UP)
 
 def deliver_package():
-    return 
-    #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
-    #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
-    #maqueenPlusV2.control_gripper(maqueenPlusV2.MyEnumServo.GRIPPER, maqueenPlusV2.MyEnumOpenClose.OPEN)
-    #music.play(music.JUMP_UP)
+    stop()
+    set_servo_angle(SERVO_2, 0)  # Open gripper
+    # Optionally play a sound here
+
 
 def replay_path(reverse=True):
-    #sequence = list(reversed(path_memory)) if reverse else path_memory
-    sequence = [(), ()]
-    for i in range(len(sequence)):
-        _, direction, move_time = sequence[i]
-
+    sequence = list(reversed(path_memory)) if reverse else path_memory
+    for _, direction, move_time in sequence:
         if reverse:
             direction = 'L' if direction == 'R' else 'R'
-
         if direction == 'L':
-            return 
-            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, -30)
-            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 30)
+            spin_left(50)
+            sleep_ms(600)
+            stop()
         elif direction == 'R':
-            return 
-            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 30)
-            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, -30)
+            spin_right(50)
+            sleep_ms(600)
+            stop()
+        drive(50, 50)
+        sleep_ms(move_time)
+        stop()
 
-        #sleep(600)
-
-        #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 50)
-        #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 50)
-        #sleep(move_time)
-        #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
-        #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
 
 def pickup_package2():
-    return 
-    #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 50)
-    #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 50)
-    #sleep(1000)
-    #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
-    #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
-    #maqueenPlusV2.control_gripper(maqueenPlusV2.MyEnumServo.GRIPPER, maqueenPlusV2.MyEnumOpenClose.CLOSE)
-    #music.play(music.BA_DING)
+    drive(50, 50)
+    sleep_ms(1000)
+    stop()
+    set_servo_angle(SERVO_2, 90)  # Close gripper
+    # Optionally play a sound here
+
 
 def shutdown():
     deliver_package()
-    #maqueenPlusV2.led_all_off()
-    #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
-    #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
-    return
+    headlights(BOTH, OFF)
+    stop()
 
 # === Main Mission ===
 startup()

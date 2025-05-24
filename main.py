@@ -40,10 +40,8 @@ try:
 except ImportError:
     pass
 
-from time import sleep as sleep_s
-
 def sleep_s(seconds):
-    sleep(int(seconds * 1000))
+    pass  # sleep removed
 
 # Constants
 I2C_ADDR = 0x10
@@ -70,10 +68,7 @@ neo_pixel = NeoPixel(NEO_PIXEL_PIN, 4)
 # Functions (excerpt of updated ones)
 
 def sleep_safe(seconds):
-    try:
-        sleep(seconds)
-    except:
-        pass  # In case sleep fails on limited firmware
+    pass  # sleep removed
 
 #8888888888888888888888888888888888888888888888888888888888888888888888888888888888888
 
@@ -324,11 +319,8 @@ def startup():
     display.scroll("Group 38")
     headlights(BOTH, ON)
     set_servo_angle(SERVO_1, SCAN_ANGLE_CENTER)
-    sleep_ms(300)
     # Simulate gripper open/close with servo if needed
     set_servo_angle(SERVO_2, 0)  # Open
-    sleep_ms(500)
-    
     set_servo_angle(SERVO_2, 90)  # Close
     # Optionally play a sound here
     display.clear()
@@ -354,10 +346,8 @@ def follow_line_until_node():
 
 def scan_for_obstacles():
     set_servo_angle(SERVO_1, SCAN_ANGLE_LEFT)
-    sleep_ms(300)
     left_dist = rangefinder()
     set_servo_angle(SERVO_1, SCAN_ANGLE_RIGHT)
-    sleep_ms(300)
     right_dist = rangefinder()
     set_servo_angle(SERVO_1, SCAN_ANGLE_CENTER)
     if left_dist > OBSTACLE_THRESHOLD:
@@ -373,11 +363,9 @@ def turn_and_log(direction, move_time):
     path_memory.append((direction, move_time))
     if direction == 'L':
         spin_left(50)
-        sleep_ms(600)
         stop()
     elif direction == 'R':
         spin_right(50)
-        sleep_ms(600)
         stop()
     # Optionally play a sound here
 
@@ -395,20 +383,16 @@ def replay_path(reverse=True):
             direction = 'L' if direction == 'R' else 'R'
         if direction == 'L':
             spin_left(50)
-            sleep_ms(600)
             stop()
         elif direction == 'R':
             spin_right(50)
-            sleep_ms(600)
             stop()
         drive(50, 50)
-        sleep_ms(move_time)
         stop()
 
 
 def pickup_package2():
     drive(50, 50)
-    sleep_ms(1000)
     stop()
     set_servo_angle(SERVO_2, 90)  # Close gripper
     # Optionally play a sound here

@@ -1,8 +1,49 @@
+try:
+    from micropython import const
+except ImportError:
+    def const(x): return x
+
 from microbit import *
-from micropython import const
-from machine import time_pulse_us
-from time import sleep_us, sleep_ms, sleep as sleep_s
+try:
+    from machine import time_pulse_us
+except ImportError:
+    time_pulse_us = None
+
+from time import sleep_us, sleep_ms, sleep
 from neopixel import NeoPixel
+
+# Constants
+I2C_ADDR = const(0x10)
+VERSION_COUNT_I2C_ADDR = const(0x32)
+VERSION_DATA_I2C_ADDR = const(0x33)
+
+LEFT_MOTOR_I2C_ADDR = const(0x00)
+AXLE_WIDTH = 0.095
+FORWARD = const(0)
+BACKWARD = const(1)
+
+# Ultrasonic Rangefinder
+US_TRIGGER = pin13
+US_ECHO = pin14
+MIN_DISTANCE = const(2)
+MAX_DISTANCE = const(450)
+MAX_DURATION = const(38000)
+SPEED_OF_SOUND = 343.4 * 100 / 1000000  # cm/us
+
+# NeoPixel
+NEO_PIXEL_PIN = pin15
+neo_pixel = NeoPixel(NEO_PIXEL_PIN, 4)
+
+# Functions (excerpt of updated ones)
+
+def sleep_safe(seconds):
+    try:
+        sleep(seconds)
+    except:
+        pass  # In case sleep fails on limited firmware
+
+#8888888888888888888888888888888888888888888888888888888888888888888888888888888888888
+
 
 # i2c bus location on the micro:bit.
 # NAME_I2C_ADDR are adresses for robot components on the i2c bus.
@@ -186,27 +227,6 @@ def sensor_on_line(sensor):
         sensor
     ] == 1
 
-
-# Ultrasonic Rangefinder function
-def rangefinder():
-    "Return a range in centimeters from 2 to 450."
-    US_TRIGGER.write_digital(0) # reset the trigger pin
-    sleep_us(2)
-    US_TRIGGER.write_digital(1)
-    sleep_us(10)  # we need trigger pin high for at least 10 microseconds
-    US_TRIGGER.write_digital(0)
-    pulse_length = time_pulse_us(US_ECHO, 1)
-    if pulse_length >= MAX_DURATION:
-        return MAX_DISTANCE  # out of range
-    return int(pulse_length * SPEED_OF_SOUND / 2)  # round trip distance so divide by 2
-
-
-# Servo functions
-def set_servo_angle(servo, angle):
-    "Set a servo to a specific angle. Usually 0 to 180."
-    i2c.write(I2C_ADDR, bytes([servo, angle]))
-
-
 # LED head light functions
 def headlights(select, state):
     "Turn LEFT, RIGHT, or BOTH headlights to ON or OFF."
@@ -221,14 +241,6 @@ def headlights(select, state):
 # Underglow lighting functions
 neo_pixel = NeoPixel(pin15, 4)
 
-
-def set_underglow(color):
-    rgb = color_to_rgb(color)
-    for i in range(4):
-        neo_pixel[i] = rgb
-    neo_pixel.show()
-
-
 def underglow_off():
     set_underglow(OFF)
 
@@ -237,6 +249,28 @@ def set_underglow_light(light, color):
     neo_pixel[light] = color_to_rgb(color)
     neo_pixel.show()
 
+def set_servo_angle(servo, angle):
+    angle = max(min(angle, 180), 0)
+    i2c.write(I2C_ADDR, bytes([servo, angle]))
+
+def rangefinder():
+    if time_pulse_us is None:
+        return -1  # Indicate unsupported
+    US_TRIGGER.write_digital(0)
+    sleep_us(2)
+    US_TRIGGER.write_digital(1)
+    sleep_us(10)
+    US_TRIGGER.write_digital(0)
+    pulse_length = time_pulse_us(US_ECHO, 1)
+    if pulse_length >= MAX_DURATION:
+        return MAX_DISTANCE
+    return int(pulse_length * SPEED_OF_SOUND / 2)
+
+def set_underglow(color):
+    rgb = color_to_rgb(color)
+    for i in range(4):
+        neo_pixel[i] = rgb
+    neo_pixel.show()
 #---------------------------------------------------------------------------------------
 
 
@@ -261,6 +295,7 @@ def startup():
     # Simulate gripper open/close with servo if needed
     set_servo_angle(SERVO_2, 0)  # Open
     sleep_ms(500)
+    
     set_servo_angle(SERVO_2, 90)  # Close
     # Optionally play a sound here
     display.clear()

@@ -1,18 +1,49 @@
 try:
     from micropython import const
-except:
+except ImportError:
     def const(x): return x
 
-from microbit import *
-from microbit import i2c, pin13, pin14, pin15, display
-from time import sleep as sleep_s, sleep_ms, sleep_us, sleep
-from microbit import running_time
+# micro:bit hardware modules
+try:
+    from microbit import i2c, pin0, pin1, pin2, pin13, pin14, pin15, display, sleep, sleep_us, running_time
+except ImportError:
+    # fallback mocks for non-hardware environments
+    class DummyPin:
+        def write_digital(self, val): pass
+        def write_analog(self, val): pass
+        def read_digital(self): return 0
+
+    def sleep(ms): pass
+    def sleep_us(us): pass
+    def running_time(): return 0
+    display = type("Display", (), {"scroll": print, "clear": lambda: None})()
+    pin0 = pin1 = pin2 = pin13 = pin14 = pin15 = DummyPin()
+
+# neopixel fallback
+try:
+    from neopixel import NeoPixel
+except ImportError:
+    class NeoPixel:
+        def __init__(self, pin, n): pass
+        def __setitem__(self, index, value): pass
+        def show(self): pass
+
+# time_pulse_us fallback
 try:
     from machine import time_pulse_us
-except:
-    time_pulse_us = None
-from neopixel import NeoPixel
-from builtins import round
+except ImportError:
+    def time_pulse_us(pin, value): return 0  # dummy fallback
+
+# builtins compatibility
+try:
+    from builtins import round, list, reversed
+except ImportError:
+    pass
+
+from time import sleep as sleep_s
+
+def sleep_s(seconds):
+    sleep(int(seconds * 1000))
 
 # Constants
 I2C_ADDR = 0x10

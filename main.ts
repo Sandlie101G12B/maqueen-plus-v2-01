@@ -1,33 +1,107 @@
-from microbit import *
-from micropython import const
-from machine import time_pulse_us
-from time import sleep_us, sleep_ms, sleep as sleep_s
-from neopixel import NeoPixel
+try:
+    from micropython import const
+except ImportError:
+    def const(x): return x
+
+# micro:bit hardware modules
+try:
+    from microbit import i2c, pin0, pin1, pin2, pin13, pin14, pin15, display, sleep, sleep_us, running_time
+except ImportError:
+    # fallback mocks for non-hardware environments
+    class DummyPin:
+        def write_digital(self, val): pass
+        def write_analog(self, val): pass
+        def read_digital(self): return 0
+
+    def sleep(ms): pass
+    def sleep_us(us): pass
+    def running_time(): return 0
+    display = type("Display", (), {"scroll": print, "clear": lambda: None})()
+    pin0 = pin1 = pin2 = pin13 = pin14 = pin15 = DummyPin()
+
+# neopixel fallback
+try:
+    from neopixel import NeoPixel
+except ImportError:
+    class NeoPixel:
+        def __init__(self, pin, n): pass
+        def __setitem__(self, index, value): pass
+        def show(self): pass
+
+# time_pulse_us fallback
+try:
+    from machine import time_pulse_us
+except ImportError:
+    def time_pulse_us(pin, value): return 0  # dummy fallback
+
+# builtins compatibility
+try:
+    from builtins import round, list, reversed
+except ImportError:
+    pass
+
+from time import sleep as sleep_s
+
+def sleep_s(seconds):
+    sleep(int(seconds * 1000))
+
+# Constants
+I2C_ADDR = 0x10
+VERSION_COUNT_I2C_ADDR = 0x32
+VERSION_DATA_I2C_ADDR = 0x33
+
+LEFT_MOTOR_I2C_ADDR = 0x00
+AXLE_WIDTH = 0.095
+FORWARD = 0
+BACKWARD = 1
+
+# Ultrasonic Rangefinder
+US_TRIGGER = pin13
+US_ECHO = pin14
+MIN_DISTANCE = 2
+MAX_DISTANCE = 450
+MAX_DURATION = 38000
+SPEED_OF_SOUND = 343.4 * 100 / 1000000  # cm/us
+
+# NeoPixel
+NEO_PIXEL_PIN = pin15
+neo_pixel = NeoPixel(NEO_PIXEL_PIN, 4)
+
+# Functions (excerpt of updated ones)
+
+def sleep_safe(seconds):
+    try:
+        sleep(seconds)
+    except:
+        pass  # In case sleep fails on limited firmware
+
+#8888888888888888888888888888888888888888888888888888888888888888888888888888888888888
+
 
 # i2c bus location on the micro:bit.
 # NAME_I2C_ADDR are adresses for robot components on the i2c bus.
-I2C_ADDR = const(0x10)
+I2C_ADDR = 0x10
 
 # robot version length and location
-VERSION_COUNT_I2C_ADDR = const(0x32)
-VERSION_DATA_I2C_ADDR = const(0x33)
+VERSION_COUNT_I2C_ADDR = 0x32
+VERSION_DATA_I2C_ADDR = 0x33
 
 # Motor constants
-LEFT_MOTOR_I2C_ADDR = const(0x00)
+LEFT_MOTOR_I2C_ADDR = 0x00
 # RIGHT_MOTOR_I2C_ADDR = 0x02 not used. I always set both.
 
 AXLE_WIDTH = 0.095
 
-FORWARD = const(0)
-BACKWARD = const(1)
+FORWARD = 0
+BACKWARD = 1
 
 # IR sensor constants for version 2.1
-LINE_SENSOR_I2C_ADDR = const(0x1D)
-ANALOG_L2_I2C_ADDR = const(0x26)
-ANALOG_L1_I2C_ADDR = const(0x24)
-ANALOG_M_I2C_ADDR = const(0x22)
-ANALOG_R1_I2C_ADDR = const(0x20)
-ANALOG_R2_I2C_ADDR = const(0x1E)
+LINE_SENSOR_I2C_ADDR = 0x1D
+ANALOG_L2_I2C_ADDR = 0x26
+ANALOG_L1_I2C_ADDR = 0x24
+ANALOG_M_I2C_ADDR = 0x22
+ANALOG_R1_I2C_ADDR = 0x20
+ANALOG_R2_I2C_ADDR = 0x1E
 
 ALL_ANALOG_SENSOR_I2C_ADDRS = [
     ANALOG_L2_I2C_ADDR,
@@ -39,49 +113,49 @@ ALL_ANALOG_SENSOR_I2C_ADDRS = [
 
 sensor_index = [4, 3, 2, 1, 0]
 
-L2 = const(0)
-L1 = const(1)
-M = const(2)
-R1 = const(3)
-R2 = const(4)
+L2 = 0
+L1 = 1
+M = 2
+R1 = 3
+R2 = 4
 
-DIGITAL_SENSOR_STATUS_I2C_ADDR = const(0x1D)
+DIGITAL_SENSOR_STATUS_I2C_ADDR = 0x1D
 DIGITAL_SENSOR_MASK = [16, 8, 4, 2, 1]
 DIGITAL_SENSOR_SHIFT = [4, 3, 2, 1, 0]
 
 # Ultrasonic Rangefinder constants
 US_TRIGGER = pin13
 US_ECHO = pin14
-MIN_DISTANCE = const(2)  # centimeters
-MAX_DISTANCE = const(450)  # centimeters
-MAX_DURATION = const(38000)  # microseconds
+MIN_DISTANCE = 2  # centimeters
+MAX_DISTANCE = 450  # centimeters
+MAX_DURATION = 38000  # microseconds
 SPEED_OF_SOUND = 343.4 * 100 / 1000000  # centemeters/microsecond
 
-# LED constants
-LEFT_LED_I2C_ADDR = const(0x0B)
-RIGHT_LED_I2C_ADDR = const(0x0C)
-LEFT = const(0)
-RIGHT = const(1)
-BOTH = const(2)
-ON = const(1)
-OFF = const(0)
+# LED nts
+LEFT_LED_I2C_ADDR = 0x0B
+RIGHT_LED_I2C_ADDR = 0x0C
+LEFT = 0
+RIGHT = 1
+BOTH = 2
+ON = 1
+OFF = 0
 
 # Servos
-SERVO_1 = const(0x14)
-SERVO_2 = const(0x15)
-SERVO_3 = const(0x16)
+SERVO_1 = 0x14
+SERVO_2 = 0x15
+SERVO_3 = 0x16
 
-# NeoPixel constatnts
+# NeoPixel tnts
 NEO_PIXEL_PIN = pin15
-RED = const(0xFF0000)
-ORANGE = const(0xFFA500)
-YELLOW = const(0xFFFF00)
-GREEN = const(0x00FF00)
-BLUE = const(0x0000FF)
-INDIGO = const(0x4B0082)
-VIOLET = const(0x8A2BE2)
-PURPLE = const(0xFF00FF)
-WHITE = const(0xFF9070)
+RED = 0xFF0000
+ORANGE = 0xFFA500
+YELLOW = 0xFFFF00
+GREEN = 0x00FF00
+BLUE = 0x0000FF
+INDIGO = 0x4B0082
+VIOLET = 0x8A2BE2
+PURPLE = 0xFF00FF
+WHITE = 0xFF9070
 # OFF = const(0x000000) use the other OFF zero is zero
 
 
@@ -186,27 +260,6 @@ def sensor_on_line(sensor):
         sensor
     ] == 1
 
-
-# Ultrasonic Rangefinder function
-def rangefinder():
-    "Return a range in centimeters from 2 to 450."
-    US_TRIGGER.write_digital(0) # reset the trigger pin
-    sleep_us(2)
-    US_TRIGGER.write_digital(1)
-    sleep_us(10)  # we need trigger pin high for at least 10 microseconds
-    US_TRIGGER.write_digital(0)
-    pulse_length = time_pulse_us(US_ECHO, 1)
-    if pulse_length >= MAX_DURATION:
-        return MAX_DISTANCE  # out of range
-    return int(pulse_length * SPEED_OF_SOUND / 2)  # round trip distance so divide by 2
-
-
-# Servo functions
-def set_servo_angle(servo, angle):
-    "Set a servo to a specific angle. Usually 0 to 180."
-    i2c.write(I2C_ADDR, bytes([servo, angle]))
-
-
 # LED head light functions
 def headlights(select, state):
     "Turn LEFT, RIGHT, or BOTH headlights to ON or OFF."
@@ -221,14 +274,6 @@ def headlights(select, state):
 # Underglow lighting functions
 neo_pixel = NeoPixel(pin15, 4)
 
-
-def set_underglow(color):
-    rgb = color_to_rgb(color)
-    for i in range(4):
-        neo_pixel[i] = rgb
-    neo_pixel.show()
-
-
 def underglow_off():
     set_underglow(OFF)
 
@@ -237,6 +282,28 @@ def set_underglow_light(light, color):
     neo_pixel[light] = color_to_rgb(color)
     neo_pixel.show()
 
+def set_servo_angle(servo, angle):
+    angle = max(min(angle, 180), 0)
+    i2c.write(I2C_ADDR, bytes([servo, angle]))
+
+def rangefinder():
+    if time_pulse_us is None:
+        return -1  # Indicate unsupported
+    US_TRIGGER.write_digital(0)
+    sleep_us(2)
+    US_TRIGGER.write_digital(1)
+    sleep_us(10)
+    US_TRIGGER.write_digital(0)
+    pulse_length = time_pulse_us(US_ECHO, 1)
+    if pulse_length >= MAX_DURATION:
+        return MAX_DISTANCE
+    return int(pulse_length * SPEED_OF_SOUND / 2)
+
+def set_underglow(color):
+    rgb = color_to_rgb(color)
+    for i in range(4):
+        neo_pixel[i] = rgb
+    neo_pixel.show()
 #---------------------------------------------------------------------------------------
 
 
@@ -261,6 +328,7 @@ def startup():
     # Simulate gripper open/close with servo if needed
     set_servo_angle(SERVO_2, 0)  # Open
     sleep_ms(500)
+    
     set_servo_angle(SERVO_2, 90)  # Close
     # Optionally play a sound here
     display.clear()
@@ -301,8 +369,8 @@ def scan_for_obstacles():
 
 
 def turn_and_log(direction, move_time):
-    timestamp = running_time()
-    path_memory.append((timestamp, direction, move_time))
+    # timestamp = running_time()
+    path_memory.append((direction, move_time))
     if direction == 'L':
         spin_left(50)
         sleep_ms(600)

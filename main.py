@@ -13,21 +13,21 @@ from time import sleep_us, sleep_ms, sleep
 from neopixel import NeoPixel
 
 # Constants
-I2C_ADDR = const(0x10)
-VERSION_COUNT_I2C_ADDR = const(0x32)
-VERSION_DATA_I2C_ADDR = const(0x33)
+I2C_ADDR = 0x10
+VERSION_COUNT_I2C_ADDR = 0x32
+VERSION_DATA_I2C_ADDR = 0x33
 
-LEFT_MOTOR_I2C_ADDR = const(0x00)
+LEFT_MOTOR_I2C_ADDR = 0x00
 AXLE_WIDTH = 0.095
-FORWARD = const(0)
-BACKWARD = const(1)
+FORWARD = 0
+BACKWARD = 1
 
 # Ultrasonic Rangefinder
 US_TRIGGER = pin13
 US_ECHO = pin14
-MIN_DISTANCE = const(2)
-MAX_DISTANCE = const(450)
-MAX_DURATION = const(38000)
+MIN_DISTANCE = 2
+MAX_DISTANCE = 450
+MAX_DURATION = 38000
 SPEED_OF_SOUND = 343.4 * 100 / 1000000  # cm/us
 
 # NeoPixel
@@ -47,28 +47,28 @@ def sleep_safe(seconds):
 
 # i2c bus location on the micro:bit.
 # NAME_I2C_ADDR are adresses for robot components on the i2c bus.
-I2C_ADDR = const(0x10)
+I2C_ADDR = 0x10
 
 # robot version length and location
-VERSION_COUNT_I2C_ADDR = const(0x32)
-VERSION_DATA_I2C_ADDR = const(0x33)
+VERSION_COUNT_I2C_ADDR = 0x32
+VERSION_DATA_I2C_ADDR = 0x33
 
 # Motor constants
-LEFT_MOTOR_I2C_ADDR = const(0x00)
+LEFT_MOTOR_I2C_ADDR = 0x00
 # RIGHT_MOTOR_I2C_ADDR = 0x02 not used. I always set both.
 
 AXLE_WIDTH = 0.095
 
-FORWARD = const(0)
-BACKWARD = const(1)
+FORWARD = 0
+BACKWARD = 1
 
 # IR sensor constants for version 2.1
-LINE_SENSOR_I2C_ADDR = const(0x1D)
-ANALOG_L2_I2C_ADDR = const(0x26)
-ANALOG_L1_I2C_ADDR = const(0x24)
-ANALOG_M_I2C_ADDR = const(0x22)
-ANALOG_R1_I2C_ADDR = const(0x20)
-ANALOG_R2_I2C_ADDR = const(0x1E)
+LINE_SENSOR_I2C_ADDR = 0x1D
+ANALOG_L2_I2C_ADDR = 0x26
+ANALOG_L1_I2C_ADDR = 0x24
+ANALOG_M_I2C_ADDR = 0x22
+ANALOG_R1_I2C_ADDR = 0x20
+ANALOG_R2_I2C_ADDR = 0x1E
 
 ALL_ANALOG_SENSOR_I2C_ADDRS = [
     ANALOG_L2_I2C_ADDR,
@@ -80,49 +80,49 @@ ALL_ANALOG_SENSOR_I2C_ADDRS = [
 
 sensor_index = [4, 3, 2, 1, 0]
 
-L2 = const(0)
-L1 = const(1)
-M = const(2)
-R1 = const(3)
-R2 = const(4)
+L2 = 0
+L1 = 1
+M = 2
+R1 = 3
+R2 = 4
 
-DIGITAL_SENSOR_STATUS_I2C_ADDR = const(0x1D)
+DIGITAL_SENSOR_STATUS_I2C_ADDR = 0x1D
 DIGITAL_SENSOR_MASK = [16, 8, 4, 2, 1]
 DIGITAL_SENSOR_SHIFT = [4, 3, 2, 1, 0]
 
 # Ultrasonic Rangefinder constants
 US_TRIGGER = pin13
 US_ECHO = pin14
-MIN_DISTANCE = const(2)  # centimeters
-MAX_DISTANCE = const(450)  # centimeters
-MAX_DURATION = const(38000)  # microseconds
+MIN_DISTANCE = 2  # centimeters
+MAX_DISTANCE = 450  # centimeters
+MAX_DURATION = 38000  # microseconds
 SPEED_OF_SOUND = 343.4 * 100 / 1000000  # centemeters/microsecond
 
-# LED constants
-LEFT_LED_I2C_ADDR = const(0x0B)
-RIGHT_LED_I2C_ADDR = const(0x0C)
-LEFT = const(0)
-RIGHT = const(1)
-BOTH = const(2)
-ON = const(1)
-OFF = const(0)
+# LED nts
+LEFT_LED_I2C_ADDR = 0x0B
+RIGHT_LED_I2C_ADDR = 0x0C
+LEFT = 0
+RIGHT = 1
+BOTH = 2
+ON = 1
+OFF = 0
 
 # Servos
-SERVO_1 = const(0x14)
-SERVO_2 = const(0x15)
-SERVO_3 = const(0x16)
+SERVO_1 = 0x14
+SERVO_2 = 0x15
+SERVO_3 = 0x16
 
-# NeoPixel constatnts
+# NeoPixel tnts
 NEO_PIXEL_PIN = pin15
-RED = const(0xFF0000)
-ORANGE = const(0xFFA500)
-YELLOW = const(0xFFFF00)
-GREEN = const(0x00FF00)
-BLUE = const(0x0000FF)
-INDIGO = const(0x4B0082)
-VIOLET = const(0x8A2BE2)
-PURPLE = const(0xFF00FF)
-WHITE = const(0xFF9070)
+RED = 0xFF0000
+ORANGE = 0xFFA500
+YELLOW = 0xFFFF00
+GREEN = 0x00FF00
+BLUE = 0x0000FF
+INDIGO = 0x4B0082
+VIOLET = 0x8A2BE2
+PURPLE = 0xFF00FF
+WHITE = 0xFF9070
 # OFF = const(0x000000) use the other OFF zero is zero
 
 

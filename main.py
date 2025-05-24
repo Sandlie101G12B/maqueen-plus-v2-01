@@ -1,9 +1,4 @@
 from microbit import *
-from time import sleep_ms
-
-# Import missing symbols from m.py if not already in global namespace
-#--------------------------------------------------------------------------------------
-from microbit import *
 from micropython import const
 from machine import time_pulse_us
 from time import sleep_us, sleep_ms, sleep as sleep_s
@@ -246,9 +241,6 @@ def set_underglow_light(light, color):
     neo_pixel.show()
 
 #---------------------------------------------------------------------------------------
-
-from microbit import display, Image, running_time
-
 # Initialize
 init_maqueen()
 

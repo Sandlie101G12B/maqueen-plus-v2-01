@@ -1,46 +1,56 @@
 from microbit import *
-import maqueen  # Replace this with your robot library
+import maqueenPlusV2
 import music
 
-robot = maqueen.MaqueenPlus()
-path_memory = []  # To store turns
+# Initialize robot
+maqueenPlusV2.i2c_init()
+path_memory = []
 
-# Constants
 OBSTACLE_THRESHOLD = 25  # cm
-SCAN_ANGLE = 45  # degrees
+SCAN_ANGLE_LEFT = 45     # degrees left
+SCAN_ANGLE_RIGHT = 135   # degrees right
+SCAN_ANGLE_CENTER = 90
 
 def startup():
-    display.scroll("G3")  # Replace with your group number
-    robot.led_all_on()  # Turn on all LEDs
-    robot.gripper_open()
-    sleep(500)
-    robot.gripper_close()  # Grabs Package 1
+    display.scroll("G3")  # Group number
+    maqueenPlusV2.led_all_on()
+    maqueenPlusV2.control_servo(maqueenPlusV2.MyEnumServo.S1, 90)
+    basic.pause(300)
+    maqueenPlusV2.control_gripper(maqueenPlusV2.MyEnumServo.GRIPPER, maqueenPlusV2.MyEnumOpenClose.OPEN)
+    basic.pause(500)
+    maqueenPlusV2.control_gripper(maqueenPlusV2.MyEnumServo.GRIPPER, maqueenPlusV2.MyEnumOpenClose.CLOSE)
     music.play(music.BA_DING)
 
 def follow_line_until_node():
     while True:
-        left = robot.read_line_sensor('left')
-        right = robot.read_line_sensor('right')
+        left = maqueenPlusV2.read_line_sensor(maqueenPlusV2.MyEnumLineSensor.LEFT_SENSOR)
+        right = maqueenPlusV2.read_line_sensor(maqueenPlusV2.MyEnumLineSensor.RIGHT_SENSOR)
 
         if left and right:
-            robot.motor_run(50, 50)  # Forward
-            elif left:
-                robot.motor_run(20, 50)  # Turn right
-                elif right:
-                    robot.motor_run(50, 20)  # Turn left
-                else:
-                    robot.motor_stop()
-                    break  # Node reached
-                                                                                                                    
+            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 50)
+            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 50)
+        elif left:
+            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 20)
+            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 50)
+        elif right:
+            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 50)
+            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 20)
+        else:
+            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
+            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
+            break
+
 def scan_for_obstacles():
-    robot.servo_write(1, 90 - SCAN_ANGLE)
-    sleep(300)
-    left_dist = robot.ultrasonic_read()
-                    
-    robot.servo_write(1, 90 + SCAN_ANGLE)
-    sleep(300)
-    right_dist = robot.ultrasonic_read()
-                                    
+    maqueenPlusV2.control_servo(maqueenPlusV2.MyEnumServo.S1, SCAN_ANGLE_LEFT)
+    basic.pause(300)
+    left_dist = maqueenPlusV2.read_ultrasonic(DigitalPin.P13, DigitalPin.P14)
+
+    maqueenPlusV2.control_servo(maqueenPlusV2.MyEnumServo.S1, SCAN_ANGLE_RIGHT)
+    basic.pause(300)
+    right_dist = maqueenPlusV2.read_ultrasonic(DigitalPin.P13, DigitalPin.P14)
+
+    maqueenPlusV2.control_servo(maqueenPlusV2.MyEnumServo.S1, SCAN_ANGLE_CENTER)
+
     if left_dist > OBSTACLE_THRESHOLD:
         return 'L'
     elif right_dist > OBSTACLE_THRESHOLD:
@@ -51,53 +61,65 @@ def scan_for_obstacles():
 def turn_and_log(direction):
     timestamp = running_time()
     path_memory.append((timestamp, direction))
-                
+
     if direction == 'L':
-        robot.turn_left()
+        maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, -30)
+        maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 30)
     elif direction == 'R':
-        robot.turn_right()
-    else:
-        robot.motor_stop()
-        music.play(music.POWER_UP)
+        maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 30)
+        maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, -30)
+    basic.pause(600)
+    maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
+    maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
+    music.play(music.POWER_UP)
 
 def deliver_package():
-    robot.motor_stop()
-    robot.gripper_open()
-    robot.rgb_led_show("rainbow")  # If supported
+    maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
+    maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
+    maqueenPlusV2.control_gripper(maqueenPlusV2.MyEnumServo.GRIPPER, maqueenPlusV2.MyEnumOpenClose.OPEN)
+    # Rainbow simulation skipped — adjust if your library supports RGB
     music.play(music.JUMP_UP)
 
 def reverse_path():
     for _, dir in reversed(path_memory):
         if dir == 'L':
-            robot.turn_right()
+            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 30)
+            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, -30)
         elif dir == 'R':
-            robot.turn_left()
-            follow_line_until_node()
+            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, -30)
+            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 30)
+        basic.pause(600)
+        follow_line_until_node()
 
 def pickup_package2():
-    robot.motor_run(50, 50)
-    sleep(1000)  # Move toward the wall
-    robot.motor_stop()
-    robot.gripper_close()
+    maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 50)
+    maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 50)
+    basic.pause(1000)
+    maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
+    maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
+    maqueenPlusV2.control_gripper(maqueenPlusV2.MyEnumServo.GRIPPER, maqueenPlusV2.MyEnumOpenClose.CLOSE)
     music.play(music.BA_DING)
 
 def shutdown():
     follow_line_until_node()
     deliver_package()
-    robot.led_all_off()
-    robot.motor_stop()
+    maqueenPlusV2.led_all_off()
+    maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
+    maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
 
+# === Main Mission Start ===
 startup()
 follow_line_until_node()
 
-for _ in range(3):  # Max 3 junctions
+for _ in range(3):
     direction = scan_for_obstacles()
     if direction == 'NONE':
         break
     turn_and_log(direction)
     follow_line_until_node()
-    deliver_package()
-    reverse_path()
-    pickup_package2()
-    reverse_path()  # Follow the same path again
-    shutdown()
+
+deliver_package()
+reverse_path()
+pickup_package2()
+reverse_path()
+shutdown()

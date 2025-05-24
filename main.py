@@ -13,47 +13,48 @@ SCAN_ANGLE_RIGHT = 135
 SCAN_ANGLE_CENTER = 90
 
 def startup():
-    display.scroll("G3")
-    maqueenPlusV2.led_all_on()
-    maqueenPlusV2.control_servo(maqueenPlusV2.MyEnumServo.S1, SCAN_ANGLE_CENTER)
-    sleep(300)
-    maqueenPlusV2.control_gripper(maqueenPlusV2.MyEnumServo.GRIPPER, maqueenPlusV2.MyEnumOpenClose.OPEN)
-    sleep(500)
-    maqueenPlusV2.control_gripper(maqueenPlusV2.MyEnumServo.GRIPPER, maqueenPlusV2.MyEnumOpenClose.CLOSE)
-    music.play(music.BA_DING)
+    startup = true
+    #display.scroll("G3")
+    #maqueenPlusV2.led_all_on()
+    #maqueenPlusV2.control_servo(maqueenPlusV2.MyEnumServo.S1, SCAN_ANGLE_CENTER)
+    #sleep(300)
+    #maqueenPlusV2.control_gripper(maqueenPlusV2.MyEnumServo.GRIPPER, maqueenPlusV2.MyEnumOpenClose.OPEN)
+    #sleep(500)
+    #maqueenPlusV2.control_gripper(maqueenPlusV2.MyEnumServo.GRIPPER, maqueenPlusV2.MyEnumOpenClose.CLOSE)
+    #music.play(music.BA_DING)
 
 def follow_line_until_node():
-    start_time = running_time()
-    while True:
-        left = maqueenPlusV2.read_line_sensor(maqueenPlusV2.MyEnumLineSensor.LEFT_SENSOR)
-        right = maqueenPlusV2.read_line_sensor(maqueenPlusV2.MyEnumLineSensor.RIGHT_SENSOR)
+    #start_time = running_time()
+    #while True:
+        #left = maqueenPlusV2.read_line_sensor(maqueenPlusV2.MyEnumLineSensor.LEFT_SENSOR)
+        #right = maqueenPlusV2.read_line_sensor(maqueenPlusV2.MyEnumLineSensor.RIGHT_SENSOR)
 
-        if left and right:
-            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 50)
-            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 50)
-        elif left:
-            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 20)
-            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 50)
-        elif right:
-            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 50)
-            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 20)
-        else:
-            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
-            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
-            break
-    end_time = running_time()
-    return end_time - start_time
+        #if left and right:
+            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 50)
+            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 50)
+        #elif left:
+            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 20)
+            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 50)
+        #elif right:
+            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 50)
+            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 20)
+        #else:
+            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
+            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
+            #break
+    #end_time = running_time()
+    return #end_time - start_time
 
 def scan_for_obstacles():
-    maqueenPlusV2.control_servo(maqueenPlusV2.MyEnumServo.S1, SCAN_ANGLE_LEFT)
-    sleep(300)
+    #maqueenPlusV2.control_servo(maqueenPlusV2.MyEnumServo.S1, SCAN_ANGLE_LEFT)
+    #sleep(300)
     left_dist = maqueenPlusV2.read_ultrasonic(DigitalPin.P13, DigitalPin.P14)
 
-    maqueenPlusV2.control_servo(maqueenPlusV2.MyEnumServo.S1, SCAN_ANGLE_RIGHT)
-    sleep(300)
+    #maqueenPlusV2.control_servo(maqueenPlusV2.MyEnumServo.S1, SCAN_ANGLE_RIGHT)
+    #sleep(300)
     right_dist = maqueenPlusV2.read_ultrasonic(DigitalPin.P13, DigitalPin.P14)
 
-    maqueenPlusV2.control_servo(maqueenPlusV2.MyEnumServo.S1, SCAN_ANGLE_CENTER)
+    #maqueenPlusV2.control_servo(maqueenPlusV2.MyEnumServo.S1, SCAN_ANGLE_CENTER)
 
     if left_dist > OBSTACLE_THRESHOLD:
         return 'L'
@@ -63,30 +64,34 @@ def scan_for_obstacles():
         return 'NONE'
 
 def turn_and_log(direction, move_time):
-    timestamp = running_time()
+    #timestamp = running_time()
+    timestamp = 5
     path_memory.append((timestamp, direction, move_time))
 
     if direction == 'L':
-        maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, -30)
-        maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 30)
+        return 
+        #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, -30)
+        #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 30)
     elif direction == 'R':
-        maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 30)
-        maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, -30)
+        return 
+        #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 30)
+        #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, -30)
 
-    sleep(600)
-    maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
-    maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
-    music.play(music.POWER_UP)
+    #sleep(600)
+    #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
+    #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
+    #music.play(music.POWER_UP)
 
 def deliver_package():
-    maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
-    maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
-    maqueenPlusV2.control_gripper(maqueenPlusV2.MyEnumServo.GRIPPER, maqueenPlusV2.MyEnumOpenClose.OPEN)
-    music.play(music.JUMP_UP)
+    return 
+    #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
+    #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
+    #maqueenPlusV2.control_gripper(maqueenPlusV2.MyEnumServo.GRIPPER, maqueenPlusV2.MyEnumOpenClose.OPEN)
+    #music.play(music.JUMP_UP)
 
 def replay_path(reverse=True):
-    sequence = list(reversed(path_memory)) if reverse else path_memory
-
+    #sequence = list(reversed(path_memory)) if reverse else path_memory
+    sequence = [(), ()]
     for i in range(len(sequence)):
         _, direction, move_time = sequence[i]
 
@@ -94,34 +99,38 @@ def replay_path(reverse=True):
             direction = 'L' if direction == 'R' else 'R'
 
         if direction == 'L':
-            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, -30)
-            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 30)
+            return 
+            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, -30)
+            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 30)
         elif direction == 'R':
-            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 30)
-            maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, -30)
+            return 
+            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 30)
+            #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, -30)
 
-        sleep(600)
+        #sleep(600)
 
-        maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 50)
-        maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 50)
-        sleep(move_time)
-        maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
-        maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
+        #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 50)
+        #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 50)
+        #sleep(move_time)
+        #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
+        #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
 
 def pickup_package2():
-    maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 50)
-    maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 50)
-    sleep(1000)
-    maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
-    maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
-    maqueenPlusV2.control_gripper(maqueenPlusV2.MyEnumServo.GRIPPER, maqueenPlusV2.MyEnumOpenClose.CLOSE)
-    music.play(music.BA_DING)
+    return 
+    #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 50)
+    #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 50)
+    #sleep(1000)
+    #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
+    #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
+    #maqueenPlusV2.control_gripper(maqueenPlusV2.MyEnumServo.GRIPPER, maqueenPlusV2.MyEnumOpenClose.CLOSE)
+    #music.play(music.BA_DING)
 
 def shutdown():
     deliver_package()
-    maqueenPlusV2.led_all_off()
-    maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
-    maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
+    #maqueenPlusV2.led_all_off()
+    #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.LEFT_MOTOR, 0)
+    #maqueenPlusV2.control_motor(maqueenPlusV2.MyEnumMotor.RIGHT_MOTOR, 0)
+    return
 
 # === Main Mission ===
 startup()
